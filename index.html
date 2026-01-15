@@ -1,212 +1,1167 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Instagram, 
-  CheckCircle2, 
-  AlertCircle, 
-  Copy, 
-  ThumbsUp, 
-  TrendingUp, 
-  RefreshCw,
-  UserCircle,
-  LayoutGrid,
-  MessageCircle,
-  Star,
-  ExternalLink,
-  Printer,
-  FileText,
-  Sparkles,
-  PenTool
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IG 帳號健檢診斷書</title>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-const App = () => {
-  const [accountName, setAccountName] = useState('');
-  
-  // 最終報告內容 (可編輯)
-  const [goodPoints, setGoodPoints] = useState('');
-  const [improvePoints, setImprovePoints] = useState('');
-  
-  // 自訂觀察輸入 (原始關鍵字)
-  const [customHighlightRaw, setCustomHighlightRaw] = useState('');
-  const [customIssueRaw, setCustomIssueRaw] = useState('');
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
 
-  const [score, setScore] = useState(0);
-  const [showCopySuccess, setShowCopySuccess] = useState(false);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
 
-  // 健檢項目清單
-  const [checklist, setChecklist] = useState([
-    { id: 1, text: '大頭貼清晰專業', category: 'profile', checked: false },
-    { id: 2, text: 'ID 簡單好記', category: 'profile', checked: false },
-    { id: 3, text: '名稱含搜尋關鍵字', category: 'profile', checked: false },
-    { id: 4, text: 'Bio 清楚說明價值', category: 'bio', checked: false },
-    { id: 5, text: '包含 CTA 行動呼籲', category: 'bio', checked: false },
-    { id: 6, text: '精選動態分類清晰', category: 'bio', checked: false },
-    { id: 7, text: '版面色調風格一致', category: 'content', checked: false },
-    { id: 8, text: '首圖清晰標題吸睛', category: 'content', checked: false },
-    { id: 9, text: '保持持續更新頻率', category: 'content', checked: false },
-    { id: 10, text: '積極回覆留言互動', category: 'engagement', checked: false },
-  ]);
+        .min-h-screen {
+            min-height: 100vh;
+            padding: 1rem;
+        }
 
-  // 定義每個檢查項目對應的「改善建議」 (針對未勾選)
-  const suggestionMap = {
-    1: '大頭貼建議更換為清晰、具專業感或強烈個人特色的照片，增加第一眼辨識度。',
-    2: '帳號 ID 建議簡化，去除過多底線或數字，讓粉絲更容易口頭傳播與搜尋。',
-    3: '名稱 (Name) 欄位建議加入「產業」或「服務」關鍵字，提升被潛在客戶搜尋到的機會。',
-    4: 'Bio 說明不夠直觀，建議用條列式清楚寫出「你是誰」以及「你能解決什麼問題」。',
-    5: 'Bio 缺乏明確行動呼籲 (CTA)，建議加上「⬇️ 點擊下方連結...」具體引導粉絲點擊。',
-    6: '精選動態建議製作統一色系或風格的封面圖，並將過期資訊歸檔，保持版面整潔。',
-    7: '版面視覺較為跳躍，建議固定 1-2 種主色調或濾鏡風格，建立品牌一致性。',
-    8: '貼文首圖資訊量過多或字體太小，建議優化標題設計，加入痛點或好奇心元素提升點擊。',
-    9: '近期更新頻率不穩定，建議制定內容行事曆，維持每週固定發文（如 2-3 篇）以維持觸及。',
-    10: '建議更積極回覆留言，並善用限時動態問答與粉絲互動，提升帳號親密度與演算法權重。'
-  };
+        @media (min-width: 768px) {
+            .min-h-screen {
+                padding: 2rem;
+            }
+        }
 
-  // 定義每個檢查項目對應的「優點讚美」 (針對已勾選)
-  const goodPointMap = {
-    1: '大頭貼非常清晰且具專業感，第一眼就能傳遞出良好的品牌信任度。',
-    2: '帳號 ID 簡潔好記，沒有多餘符號，非常有利於粉絲搜尋與記憶。',
-    3: '名稱設定精準，包含了重要關鍵字，能有效提升在搜尋結果的曝光度。',
-    4: 'Bio 寫得非常清楚，能在幾秒鐘內讓訪客知道你能提供什麼價值。',
-    5: 'Bio 中的 CTA 設定明確，能有效引導粉絲進行下一步動作（點擊連結）。',
-    6: '精選動態封面風格統一，視覺上非常整潔舒適，分類邏輯也很清楚。',
-    7: '版面色調與風格維持得很好，具有高度的一致性，品牌識別度高。',
-    8: '貼文首圖設計吸睛，標題字體清晰，能有效吸引人點進去觀看。',
-    9: '更新頻率非常穩定，能持續維持與粉絲的互動熱度，這點非常棒！',
-    10: '與粉絲的互動非常積極，回覆留言迅速且親切，社群黏著度經營得很好。'
-  };
+        .max-w-4xl {
+            max-width: 56rem;
+            margin: 0 auto;
+        }
 
-  // --- 智慧句型庫 (模擬 AI 潤飾) ---
-  
-  // 優點讚美句型庫 (Mega Pack)
-  const goodTemplates = [
-    (key) => `觀察到您的${key}，這展現了非常獨特的個人魅力，建議持續保持！`,
-    (key) => `特別喜歡您在${key}的處理，這能有效建立與粉絲之間的深層連結。`,
-    (key) => `您的${key}是一個很大的亮點，在同類型的帳號中非常有記憶點。`,
-    (key) => `看得出來在${key}上下了很多功夫，整體的質感非常優秀。`,
-    (key) => `關於${key}的部分，您掌握得非常好，這會大幅提升粉絲的信任感。`,
-    (key) => `這是一個很棒的細節！您的${key}讓整個帳號看起來更有溫度。`,
-    (key) => `非常欣賞${key}的呈現方式，這也是目前演算法比較偏好的優質內容特徵。`,
-    (key) => `能做到${key}其實不容易，這顯示了您對品牌經營的用心。`,
-    (key) => `從${key}可以看出您很清楚受眾喜歡什麼，這是經營成功的關鍵。`,
-    (key) => `您的${key}非常有辨識度，這有助於在粉絲心中建立強烈的品牌心佔率。`,
-    (key) => `針對${key}，我覺得這是您目前最大的競爭優勢之一。`,
-    (key) => `瀏覽您的帳號時，${key}讓我眼睛為之一亮，非常有質感。`,
-    (key) => `保持${key}的高水準表現，長期下來會累積很可觀的粉絲紅利。`,
-    (key) => `您的${key}處理得恰到好處，既不會太過強硬，又能清楚傳達訊息。`,
-    (key) => `在視覺與內容上，${key}都達到了很高的平衡，非常專業。`,
-    (key) => `這點做得很好！${key}能夠有效降低粉絲的流失率。`,
-    (key) => `我特別想稱讚${key}，這讓新進來的粉絲能快速抓到重點。`,
-    (key) => `持續維持${key}的優點，這會是您未來變現的重要基礎。`,
-    (key) => `比起許多同性質帳號，您的${key}顯得更加成熟且具吸引力。`,
-    (key) => `這是一個很聰明的策略，透過${key}來強化個人品牌的獨特性。`
-  ];
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
 
-  // 缺點建議句型庫 (Mega Pack)
-  const improveTemplates = [
-    (key) => `目前觀察到${key}，建議可以稍微調整方向，會讓整體質感更升級。`,
-    (key) => `雖然內容不錯，但${key}可能會影響粉絲的觀看體驗，建議優先優化此處。`,
-    (key) => `針對${key}的部分，建議可以參考競品的做法進行微調，以提升轉換率。`,
-    (key) => `發現${key}，這可能是導致觸及率受限的原因之一，建議嘗試不同的呈現方式。`,
-    (key) => `在${key}上如果能多一點巧思，我相信粉絲的互動意願會大幅提高。`,
-    (key) => `建議重新檢視${key}，因為這通常是新粉絲決定是否追蹤的關鍵秒數。`,
-    (key) => `目前${key}的呈現稍微可惜了一些，若能優化，整體的專業度會加分很多。`,
-    (key) => `可以嘗試優化${key}，這能幫助演算法更精準地抓到您的受眾輪廓。`,
-    (key) => `關於${key}，建議可以設定更明確的規範，讓版面看起來更整齊劃一。`,
-    (key) => `若能改善${key}，將能有效降低粉絲閱讀時的跳出率。`,
-    (key) => `我覺得${key}還有很大的進步空間，調整後可能會看到數據明顯的成長。`,
-    (key) => `目前${key}稍微有點模糊，建議更直觀一點，降低粉絲的思考成本。`,
-    (key) => `這是一個常見的小問題，修正${key}後，帳號的精緻度會立刻提升。`,
-    (key) => `為了長遠經營，建議在${key}上多花一點時間打磨。`,
-    (key) => `觀察到${key}的頻率或品質較不穩定，建議制定 SOP 來維持水準。`,
-    (key) => `如果能將${key}做得更極致，這會成為您與競爭對手拉開差距的關鍵。`,
-    (key) => `對於${key}，建議可以多參考國外類似帳號的操作手法。`,
-    (key) => `小心${key}可能會讓粉絲產生視覺疲勞，建議適度調整。`,
-    (key) => `雖然目前${key}不是大問題，但若要擴大流量池，優化它是必須的。`,
-    (key) => `建議把${key}列為下個階段的首要優化目標。`
-  ];
+        .space-y-4 > * + * {
+            margin-top: 1rem;
+        }
 
-  const getRandomTemplate = (templates, keyword) => {
-    const randomIndex = Math.floor(Math.random() * templates.length);
-    return templates[randomIndex](keyword);
-  };
+        .space-y-3 > * + * {
+            margin-top: 0.75rem;
+        }
 
-  // 綜合生成：優點
-  const generateCombinedGoodPoints = () => {
-    let finalOutput = '';
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
 
-    // 1. 處理勾選項目
-    const checkedItems = checklist.filter(item => item.checked);
-    if (checkedItems.length > 0) {
-      finalOutput += checkedItems.map(item => `✅ ${goodPointMap[item.id]}`).join('\n');
-    }
+        /* Rounded Cards */
+        .rounded-2xl {
+            border-radius: 1rem;
+        }
 
-    // 2. 處理自訂關鍵字 (如果有)
-    if (customHighlightRaw.trim()) {
-      const keywords = customHighlightRaw.split(/[,，\n]/).filter(k => k.trim()); // 支援逗號或換行分隔
-      if (keywords.length > 0) {
-        finalOutput += '\n\n✨ [顧問特別觀察]\n';
-        keywords.forEach(key => {
-            finalOutput += `• ${getRandomTemplate(goodTemplates, key.trim())}\n`;
-        });
-      }
-    }
+        .rounded-xl {
+            border-radius: 0.75rem;
+        }
 
-    if (!finalOutput) finalOutput = '（目前沒有勾選任何優點，也沒有輸入自訂觀察）';
-    setGoodPoints(finalOutput);
-  };
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
 
-  // 綜合生成：建議
-  const generateCombinedImprovePoints = () => {
-    let finalOutput = '';
+        /* Shadows */
+        .shadow-sm {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
 
-    // 1. 處理未勾選項目
-    const uncheckedItems = checklist.filter(item => !item.checked);
-    if (uncheckedItems.length > 0) {
-      finalOutput += uncheckedItems.map(item => `⚠️ ${suggestionMap[item.id]}`).join('\n');
-    }
+        .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
 
-    // 2. 處理自訂關鍵字 (如果有)
-    if (customIssueRaw.trim()) {
-      const keywords = customIssueRaw.split(/[,，\n]/).filter(k => k.trim());
-      if (keywords.length > 0) {
-        finalOutput += '\n\n💡 [客製化優化策略]\n';
-        keywords.forEach(key => {
-            finalOutput += `• ${getRandomTemplate(improveTemplates, key.trim())}\n`;
-        });
-      }
-    }
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
 
-    if (!finalOutput) finalOutput = '（太棒了！目前基礎項目全數通過）';
-    setImprovePoints(finalOutput);
-  };
+        /* Header */
+        header {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            border-top: 4px solid #ec4899;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
 
-  // 計算分數
-  useEffect(() => {
-    const checkedCount = checklist.filter(item => item.checked).length;
-    const calculatedScore = Math.round((checkedCount / checklist.length) * 100);
-    setScore(calculatedScore);
-  }, [checklist]);
+        @media (min-width: 768px) {
+            header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 0;
+            }
+        }
 
-  const toggleCheck = (id) => {
-    setChecklist(prev => prev.map(item => 
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ));
-  };
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
 
-  const generateReportText = () => {
-    const checkedItems = checklist.filter(i => i.checked).map(i => `✅ ${i.text}`).join('\n');
-    const uncheckedItems = checklist.filter(i => !i.checked).map(i => `⬜ ${i.text}`).join('\n');
-    
-    return `📊 IG 帳號健檢報告
+        .header-icon {
+            background: linear-gradient(to top right, #fbbf24, #f87171, #a855f7);
+            padding: 0.75rem;
+            border-radius: 9999px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .header-text p {
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .score-display {
+            text-align: right;
+        }
+
+        .score-display .label {
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+
+        .score-display .value {
+            font-size: 1.875rem;
+            font-weight: 900;
+        }
+
+        .score-80 { color: #16a34a; }
+        .score-50 { color: #ca8a04; }
+        .score-0 { color: #ef4444; }
+
+        @media (max-width: 767px) {
+            .score-display { display: none; }
+        }
+
+        /* Buttons */
+        button {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            color: #9ca3af;
+        }
+
+        .btn-icon:hover {
+            color: #ef4444;
+        }
+
+        .btn-primary {
+            background-color: #ec4899;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #db2777;
+        }
+
+        .btn-primary:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+
+        .btn-success {
+            background-color: #16a34a;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-success:hover {
+            background-color: #15803d;
+        }
+
+        .btn-success.active {
+            background-color: #16a34a;
+        }
+
+        .btn-danger {
+            background-color: #ea580c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c2410c;
+        }
+
+        .btn-dark {
+            background-color: #1f2937;
+            color: white;
+        }
+
+        .btn-dark:hover {
+            background-color: #111827;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Input Section */
+        .input-section {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        @media (min-width: 768px) {
+            .input-group {
+                flex-direction: row;
+            }
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 0 1rem;
+        }
+
+        .input-wrapper span {
+            color: #9ca3af;
+            margin-right: 0.5rem;
+            font-weight: 700;
+        }
+
+        .input-wrapper input {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .input-wrapper input::placeholder {
+            color: #9ca3af;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 1024px) {
+            .grid.lg-cols-3 {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+
+        .col-span-2 {
+            grid-column: span 2;
+        }
+
+        /* Card Sections */
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-left-border {
+            border-left: 4px solid;
+        }
+
+        .card-left-green {
+            border-left-color: #4ade80;
+        }
+
+        .card-left-orange {
+            border-left-color: #fb923c;
+        }
+
+        .card-left-blue {
+            border-left-color: #60a5fa;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Checklist */
+        .checklist-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .checklist-category-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .checklist-item.checked {
+            background-color: #f0fdf4;
+        }
+
+        .checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+            background-color: white;
+            transition: all 0.2s;
+        }
+
+        .checkbox.checked {
+            background-color: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .checkbox.checked svg {
+            color: white;
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+
+        .checklist-text {
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+
+        .checklist-text.checked {
+            color: #111827;
+            font-weight: 500;
+        }
+
+        /* Textarea */
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            color: #111827;
+            resize: vertical;
+            transition: all 0.2s;
+        }
+
+        textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.1);
+        }
+
+        textarea.orange:focus {
+            border-color: #ea580c;
+            box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.1);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .action-bar {
+                flex-direction: row;
+            }
+        }
+
+        .action-bar button {
+            flex: 1;
+        }
+
+        /* Icon styling */
+        svg {
+            display: inline;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+                page-break-inside: avoid;
+            }
+
+            .print-document {
+                padding: 2rem;
+                max-width: 48rem;
+                margin: 0 auto;
+                background-color: white;
+            }
+        }
+
+        .print-document {
+            display: none;
+        }
+
+        .print-header {
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .print-header-left h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .print-header-left p {
+            color: #9ca3af;
+        }
+
+        .print-header-right {
+            text-align: right;
+        }
+
+        .print-header-right .label {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+        }
+
+        .print-header-right .value {
+            font-family: 'Courier New', monospace;
+            color: #4b5563;
+        }
+
+        .print-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2.5rem;
+            background-color: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        .print-info-left .label {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+        }
+
+        .print-info-left .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .print-info-right {
+            text-align: right;
+        }
+
+        .print-info-right .label {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+        }
+
+        .print-info-right .value {
+            font-size: 2.25rem;
+            font-weight: 900;
+        }
+
+        .print-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .print-section h3 {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .print-section.green h3 {
+            color: #16a34a;
+            border-bottom-color: #dcfce7;
+        }
+
+        .print-section.orange h3 {
+            color: #c2410c;
+            border-bottom-color: #fed7aa;
+        }
+
+        .print-section .content {
+            color: #374151;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 6rem;
+        }
+
+        .print-checklist {
+            margin-bottom: 2rem;
+        }
+
+        .print-checklist h3 {
+            font-weight: 700;
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .print-checklist-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 2rem;
+        }
+
+        .print-checklist-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .print-checklist-item.checked {
+            color: #111827;
+            font-weight: 500;
+        }
+
+        .print-checklist-item.unchecked {
+            color: #d1d5db;
+        }
+
+        .print-checklist-icon {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .print-footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f3f4f6;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        /* Utility Classes */
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .items-start {
+            align-items: flex-start;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+
+        .text-xs { font-size: 0.75rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.125rem; }
+
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+
+        .text-green-500 { color: #16a34a; }
+        .text-green-600 { color: #15803d; }
+        .text-green-700 { color: #166534; }
+        .text-orange-500 { color: #f97316; }
+        .text-orange-600 { color: #ea580c; }
+        .text-orange-700 { color: #c2410c; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-blue-800 { color: #1e40af; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-900 { color: #111827; }
+
+        .bg-white { background-color: white; }
+        .bg-green-50 { background-color: #f0fdf4; }
+        .bg-green-600 { background-color: #16a34a; }
+        .bg-green-700 { background-color: #15803d; }
+        .bg-orange-50 { background-color: #fff7ed; }
+        .bg-orange-600 { background-color: #ea580c; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .bg-blue-100 { background-color: #dbeafe; }
+        .bg-blue-200 { background-color: #bfdbfe; }
+        .bg-blue-400 { background-color: #60a5fa; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-gray-900 { background-color: #1f2937; }
+
+        .border { border: 1px solid #e5e7eb; }
+        .border-blue-100 { border-color: #dbeafe; }
+        .border-blue-200 { border-color: #bfdbfe; }
+        .border-green-200 { border-color: #dcfce7; }
+        .border-orange-200 { border-color: #fed7aa; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-gray-300 { border-color: #d1d5db; }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .w-full { width: 100%; }
+        .h-64 { height: 16rem; }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen no-print">
+        <div class="max-w-4xl space-y-6">
+            
+            <!-- Header -->
+            <header>
+                <div class="header-left">
+                    <div class="header-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <circle cx="17.5" cy="6.5" r="1.5"></circle>
+                        </svg>
+                    </div>
+                    <div class="header-text">
+                        <h1>IG 帳號健檢診斷書</h1>
+                        <p>快速分析、智慧擴寫、一鍵生成報告</p>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="score-display">
+                        <div class="label">當前健康度</div>
+                        <div class="value score-80" id="scoreDisplay">0 分</div>
+                    </div>
+                    <button class="btn-icon" onclick="resetForm()" title="重置表單">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 4v6h-6"></path>
+                            <path d="M1 20v-6h6"></path>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Input Section -->
+            <div class="input-section">
+                <label class="input-label">受測帳號 (ID)</label>
+                <div class="input-group">
+                    <div class="input-wrapper" style="flex: 1;">
+                        <span>@</span>
+                        <input 
+                            type="text" 
+                            id="accountName"
+                            placeholder="your_instagram_id"
+                        />
+                    </div>
+                    <button class="btn-primary" id="openInstagramBtn" onclick="openInstagram()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        前往查看
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="grid lg-cols-3">
+                
+                <!-- Left Column: Checklist -->
+                <div class="space-y-6">
+                    <div class="card">
+                        <h2 class="card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-500">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            步驟 1：基礎項目檢核
+                        </h2>
+                        <div class="space-y-6" id="checklistContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Feedback -->
+                <div class="space-y-6">
+                    
+                    <!-- Custom Observation -->
+                    <div class="card card-left-blue">
+                        <h2 class="card-title text-blue-800">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-500">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            步驟 2：顧問觀察筆記 (AI 智慧擴寫)
+                        </h2>
+                        <div class="grid gap-4">
+                            <div>
+                                <label class="input-label">您看到的亮點 (關鍵字，用逗號分隔)</label>
+                                <input 
+                                    type="text" 
+                                    id="customHighlightRaw"
+                                    placeholder="例：限動很好笑，文案很幽默"
+                                    style="width: 100%; padding: 0.75rem; background-color: #f9fafb; border: 1px solid #bfdbfe; border-radius: 0.75rem; font-size: 0.875rem;"
+                                />
+                            </div>
+                            <div>
+                                <label class="input-label">您看到的痛點 (關鍵字，用逗號分隔)</label>
+                                <input 
+                                    type="text" 
+                                    id="customIssueRaw"
+                                    placeholder="例：照片很糊，排版太亂"
+                                    style="width: 100%; padding: 0.75rem; background-color: #f9fafb; border: 1px solid #bfdbfe; border-radius: 0.75rem; font-size: 0.875rem;"
+                                />
+                            </div>
+                        </div>
+                        <div class="text-xs text-blue-400 flex items-center mt-2">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 0.25rem;">
+                                <circle cx="12" cy="12" r="1"/><path d="M12 6v6m0 6v0"/>
+                            </svg>
+                            輸入關鍵字後，按下方的「生成報告」按鈕，系統會自動幫您潤飾成專業語句。
+                        </div>
+                    </div>
+
+                    <!-- Good Points -->
+                    <div class="card card-left-border card-left-green">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="card-title" style="margin-bottom: 0;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-500">
+                                    <path d="M14 10h4.764a2 2 0 0 1 1.789 2.894l-3.646 7.073A2 2 0 0 1 14.964 21H7a2 2 0 0 1-2-2V9a6 6 0 0 1 12 0"></path>
+                                </svg>
+                                做得很好的地方
+                            </h2>
+                            <button class="btn-secondary" onclick="generateCombinedGoodPoints()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                                </svg>
+                                生成優點報告
+                            </button>
+                        </div>
+                        <textarea id="goodPoints" class="h-64"></textarea>
+                    </div>
+
+                    <!-- Improve Points -->
+                    <div class="card card-left-border card-left-orange">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="card-title" style="margin-bottom: 0;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-orange-500">
+                                    <polyline points="23 6 13.46 15.88 8 10.88 1 17.88 1.6 19 8 12.6 13.46 17.88 25 6 24 0"></polyline>
+                                </svg>
+                                可以更好的地方
+                            </h2>
+                            <button class="btn-secondary" onclick="generateCombinedImprovePoints()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                                </svg>
+                                生成建議報告
+                            </button>
+                        </div>
+                        <textarea id="improvePoints" class="h-64 orange"></textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="card action-bar">
+                        <button class="btn-success" onclick="copyToClipboard()" id="copyBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            </svg>
+                            複製文字報告
+                        </button>
+                        
+                        <button class="btn-dark" onclick="handlePrint()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg>
+                            下載 / 列印 PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Document -->
+    <div class="print-document print-only" id="printDocument"></div>
+
+    <script>
+        // === 數據定義 ===
+        const checklist = [
+            { id: 1, text: '大頭貼清晰專業', category: 'profile', checked: false },
+            { id: 2, text: 'ID 簡單好記', category: 'profile', checked: false },
+            { id: 3, text: '名稱含搜尋關鍵字', category: 'profile', checked: false },
+            { id: 4, text: 'Bio 清楚說明價值', category: 'bio', checked: false },
+            { id: 5, text: '包含 CTA 行動呼籲', category: 'bio', checked: false },
+            { id: 6, text: '精選動態分類清晰', category: 'bio', checked: false },
+            { id: 7, text: '版面色調風格一致', category: 'content', checked: false },
+            { id: 8, text: '首圖清晰標題吸睛', category: 'content', checked: false },
+            { id: 9, text: '保持持續更新頻率', category: 'content', checked: false },
+            { id: 10, text: '積極回覆留言互動', category: 'engagement', checked: false },
+        ];
+
+        const suggestionMap = {
+            1: '大頭貼建議更換為清晰、具專業感或強烈個人特色的照片，增加第一眼辨識度。',
+            2: '帳號 ID 建議簡化，去除過多底線或數字，讓粉絲更容易口頭傳播與搜尋。',
+            3: '名稱 (Name) 欄位建議加入「產業」或「服務」關鍵字，提升被潛在客戶搜尋到的機會。',
+            4: 'Bio 說明不夠直觀，建議用條列式清楚寫出「你是誰」以及「你能解決什麼問題」。',
+            5: 'Bio 缺乏明確行動呼籲 (CTA)，建議加上「⬇️ 點擊下方連結...」具體引導粉絲點擊。',
+            6: '精選動態建議製作統一色系或風格的封面圖，並將過期資訊歸檔，保持版面整潔。',
+            7: '版面視覺較為跳躍，建議固定 1-2 種主色調或濾鏡風格，建立品牌一致性。',
+            8: '貼文首圖資訊量過多或字體太小，建議優化標題設計，加入痛點或好奇心元素提升點擊。',
+            9: '近期更新頻率不穩定，建議制定內容行事曆，維持每週固定發文（如 2-3 篇）以維持觸及。',
+            10: '建議更積極回覆留言，並善用限時動態問答與粉絲互動，提升帳號親密度與演算法權重。'
+        };
+
+        const goodPointMap = {
+            1: '大頭貼非常清晰且具專業感，第一眼就能傳遞出良好的品牌信任度。',
+            2: '帳號 ID 簡潔好記，沒有多餘符號，非常有利於粉絲搜尋與記憶。',
+            3: '名稱設定精準，包含了重要關鍵字，能有效提升在搜尋結果的曝光度。',
+            4: 'Bio 寫得非常清楚，能在幾秒鐘內讓訪客知道你能提供什麼價值。',
+            5: 'Bio 中的 CTA 設定明確，能有效引導粉絲進行下一步動作（點擊連結）。',
+            6: '精選動態封面風格統一，視覺上非常整潔舒適，分類邏輯也很清楚。',
+            7: '版面色調與風格維持得很好，具有高度的一致性，品牌識別度高。',
+            8: '貼文首圖設計吸睛，標題字體清晰，能有效吸引人點進去觀看。',
+            9: '更新頻率非常穩定，能持續維持與粉絲的互動熱度，這點非常棒！',
+            10: '與粉絲的互動非常積極，回覆留言迅速且親切，社群黏著度經營得很好。'
+        };
+
+        const goodTemplates = [
+            (key) => `觀察到您的${key}，這展現了非常獨特的個人魅力，建議持續保持！`,
+            (key) => `特別喜歡您在${key}的處理，這能有效建立與粉絲之間的深層連結。`,
+            (key) => `您的${key}是一個很大的亮點，在同類型的帳號中非常有記憶點。`,
+            (key) => `看得出來在${key}上下了很多功夫，整體的質感非常優秀。`,
+            (key) => `關於${key}的部分，您掌握得非常好，這會大幅提升粉絲的信任感。`,
+            (key) => `這是一個很棒的細節！您的${key}讓整個帳號看起來更有溫度。`,
+            (key) => `非常欣賞${key}的呈現方式，這也是目前演算法比較偏好的優質內容特徵。`,
+            (key) => `能做到${key}其實不容易，這顯示了您對品牌經營的用心。`,
+            (key) => `從${key}可以看出您很清楚受眾喜歡什麼，這是經營成功的關鍵。`,
+            (key) => `您的${key}非常有辨識度，這有助於在粉絲心中建立強烈的品牌心佔率。`,
+        ];
+
+        const improveTemplates = [
+            (key) => `目前觀察到${key}，建議可以稍微調整方向，會讓整體質感更升級。`,
+            (key) => `雖然內容不錯，但${key}可能會影響粉絲的觀看體驗，建議優先優化此處。`,
+            (key) => `針對${key}的部分，建議可以參考競品的做法進行微調，以提升轉換率。`,
+            (key) => `發現${key}，這可能是導致觸及率受限的原因之一，建議嘗試不同的呈現方式。`,
+            (key) => `在${key}上如果能多一點巧思，我相信粉絲的互動意願會大幅提高。`,
+            (key) => `建議重新檢視${key}，因為這通常是新粉絲決定是否追蹤的關鍵秒數。`,
+            (key) => `目前${key}的呈現稍微可惜了一些，若能優化，整體的專業度會加分很多。`,
+            (key) => `可以嘗試優化${key}，這能幫助演算法更精準地抓到您的受眾輪廓。`,
+            (key) => `關於${key}，建議可以設定更明確的規範，讓版面看起來更整齊劃一。`,
+            (key) => `若能改善${key}，將能有效降低粉絲閱讀時的跳出率。`,
+        ];
+
+        const categoryNames = {
+            'profile': '基本門面',
+            'bio': '簡介與動態',
+            'content': '內容與排版',
+            'engagement': '互動表現'
+        };
+
+        // === 初始化 ===
+        function initChecklist() {
+            const container = document.getElementById('checklistContainer');
+            const grouped = {};
+            
+            checklist.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
+            });
+
+            Object.entries(grouped).forEach(([category, items]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'checklist-category';
+                
+                const title = document.createElement('div');
+                title.className = 'checklist-category-title';
+                title.textContent = categoryNames[category] || category;
+                categoryDiv.appendChild(title);
+
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'checklist-item';
+                    itemDiv.onclick = () => toggleCheck(item.id);
+                    
+                    const checkbox = document.createElement('div');
+                    checkbox.className = 'checkbox';
+                    
+                    const label = document.createElement('span');
+                    label.className = 'checklist-text';
+                    label.textContent = item.text;
+
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(label);
+                    
+                    item._element = itemDiv;
+                    item._checkbox = checkbox;
+                    item._label = label;
+                    
+                    categoryDiv.appendChild(itemDiv);
+                });
+
+                container.appendChild(categoryDiv);
+            });
+
+            updateChecklistUI();
+        }
+
+        function toggleCheck(id) {
+            const item = checklist.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                updateChecklistUI();
+                updateScore();
+            }
+        }
+
+        function updateChecklistUI() {
+            checklist.forEach(item => {
+                if (item.checked) {
+                    item._element.classList.add('checked');
+                    item._checkbox.classList.add('checked');
+                    item._label.classList.add('checked');
+                    item._checkbox.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                } else {
+                    item._element.classList.remove('checked');
+                    item._checkbox.classList.remove('checked');
+                    item._label.classList.remove('checked');
+                    item._checkbox.innerHTML = '';
+                }
+            });
+        }
+
+        function updateScore() {
+            const checked = checklist.filter(i => i.checked).length;
+            const score = Math.round((checked / checklist.length) * 100);
+            const display = document.getElementById('scoreDisplay');
+            display.textContent = score + ' 分';
+            
+            if (score >= 80) display.className = 'value score-80';
+            else if (score >= 50) display.className = 'value score-50';
+            else display.className = 'value score-0';
+        }
+
+        // === 生成報告 ===
+        function getRandomTemplate(templates, keyword) {
+            return templates[Math.floor(Math.random() * templates.length)](keyword);
+        }
+
+        function generateCombinedGoodPoints() {
+            let output = '';
+            const checked = checklist.filter(i => i.checked);
+            
+            if (checked.length > 0) {
+                output += checked.map(item => `✅ ${goodPointMap[item.id]}`).join('\n');
+            }
+
+            const customHighlight = document.getElementById('customHighlightRaw').value.trim();
+            if (customHighlight) {
+                const keywords = customHighlight.split(/[,，\n]/).filter(k => k.trim());
+                if (keywords.length > 0) {
+                    output += '\n\n✨ [顧問特別觀察]\n';
+                    keywords.forEach(key => {
+                        output += `• ${getRandomTemplate(goodTemplates, key.trim())}\n`;
+                    });
+                }
+            }
+
+            if (!output) output = '（目前沒有勾選任何優點，也沒有輸入自訂觀察）';
+            document.getElementById('goodPoints').value = output;
+        }
+
+        function generateCombinedImprovePoints() {
+            let output = '';
+            const unchecked = checklist.filter(i => !i.checked);
+            
+            if (unchecked.length > 0) {
+                output += unchecked.map(item => `⚠️ ${suggestionMap[item.id]}`).join('\n');
+            }
+
+            const customIssue = document.getElementById('customIssueRaw').value.trim();
+            if (customIssue) {
+                const keywords = customIssue.split(/[,，\n]/).filter(k => k.trim());
+                if (keywords.length > 0) {
+                    output += '\n\n💡 [客製化優化策略]\n';
+                    keywords.forEach(key => {
+                        output += `• ${getRandomTemplate(improveTemplates, key.trim())}\n`;
+                    });
+                }
+            }
+
+            if (!output) output = '（太棒了！目前基礎項目全數通過）';
+            document.getElementById('improvePoints').value = output;
+        }
+
+        // === 複製 ===
+        function copyToClipboard() {
+            const accountName = document.getElementById('accountName').value || '未填寫';
+            const goodPoints = document.getElementById('goodPoints').value || '（暫無特別備註）';
+            const improvePoints = document.getElementById('improvePoints').value || '（暫無特別備註）';
+            const score = Math.round((checklist.filter(i => i.checked).length / checklist.length) * 100);
+
+            const checkedItems = checklist.filter(i => i.checked).map(i => `✅ ${i.text}`).join('\n');
+            const uncheckedItems = checklist.filter(i => !i.checked).map(i => `⬜ ${i.text}`).join('\n');
+
+            const text = `📊 IG 帳號健檢報告
 -------------------------
-👤 帳號：${accountName || '未填寫'}
+👤 帳號：${accountName}
 🏆 健康度分數：${score} 分
 -------------------------
 
 ✨ 【做得很好的地方】
-${goodPoints || '（暫無特別備註）'}
+${goodPoints}
 
 💡 【可以更好的地方】
-${improvePoints || '（暫無特別備註）'}
+${improvePoints}
 
 -------------------------
 📝 【基礎項目檢核】
@@ -217,377 +1172,146 @@ ${uncheckedItems}
 
 📅 健檢日期：${new Date().toLocaleDateString()}
 `;
-  };
 
-  const copyToClipboard = () => {
-    const text = generateReportText();
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.left = "-9999px";
-    textArea.style.top = "0";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        triggerSuccess();
-      } else {
-        alert('複製失敗，請手動複製內容。');
-      }
-    } catch (err) {
-      console.error('無法複製', err);
-    }
-    
-    document.body.removeChild(textArea);
-  };
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '✓ 已複製文字';
+                btn.style.backgroundColor = '#16a34a';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>複製文字報告';
+                    btn.style.backgroundColor = '#16a34a';
+                }, 2000);
+            });
+        }
 
-  const handlePrint = () => {
-    window.print();
-  };
+        // === 列印 ===
+        function generatePrintDocument() {
+            const accountName = document.getElementById('accountName').value || '未指定';
+            const goodPoints = document.getElementById('goodPoints').value || '（無特別備註）';
+            const improvePoints = document.getElementById('improvePoints').value || '（無特別備註）';
+            const score = Math.round((checklist.filter(i => i.checked).length / checklist.length) * 100);
+            const date = new Date().toLocaleDateString();
 
-  const triggerSuccess = () => {
-    setShowCopySuccess(true);
-    setTimeout(() => setShowCopySuccess(false), 2000);
-  };
-
-  const resetForm = () => {
-    if(confirm('確定要清空所有內容嗎？')) {
-      setAccountName('');
-      setGoodPoints('');
-      setImprovePoints('');
-      setCustomHighlightRaw('');
-      setCustomIssueRaw('');
-      setChecklist(prev => prev.map(item => ({...item, checked: false})));
-    }
-  };
-
-  const openInstagram = () => {
-    if (accountName) {
-      const cleanName = accountName.replace('@', '').trim();
-      window.open(`https://www.instagram.com/${cleanName}/`, '_blank');
-    }
-  };
-
-  const getScoreColor = (s) => {
-    if (s >= 80) return 'text-green-600';
-    if (s >= 50) return 'text-yellow-600';
-    return 'text-red-500';
-  };
-
-  const getCategoryName = (cat) => {
-    switch(cat) {
-      case 'profile': return '基本門面';
-      case 'bio': return '簡介與動態';
-      case 'content': return '內容與排版';
-      case 'engagement': return '互動表現';
-      default: return '其他';
-    }
-  };
-
-  // Group checklist by category for display
-  const groupedChecklist = checklist.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {});
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <header className="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row items-center justify-between border-t-4 border-pink-500">
-          <div className="flex items-center space-x-3 mb-4 md:mb-0">
-            <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-3 rounded-full text-white">
-              <Instagram size={32} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">IG 帳號健檢診斷書</h1>
-              <p className="text-gray-500 text-sm">快速分析、智慧擴寫、一鍵生成報告</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden md:block">
-              <div className="text-sm text-gray-500">當前健康度</div>
-              <div className={`text-3xl font-black ${getScoreColor(score)}`}>{score} 分</div>
-            </div>
-            <button 
-              onClick={resetForm}
-              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-              title="重置表單"
-            >
-              <RefreshCw size={20} />
-            </button>
-          </div>
-        </header>
-
-        {/* Input Section */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">受測帳號 (ID)</label>
-            <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 flex items-center bg-gray-100 rounded-lg px-4 py-2">
-                    <span className="text-gray-500 mr-2 font-bold">@</span>
-                    <input 
-                        type="text" 
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        placeholder="your_instagram_id"
-                        className="bg-transparent border-none outline-none w-full text-lg font-medium text-gray-900 placeholder-gray-400"
-                    />
-                </div>
-                <button
-                    onClick={openInstagram}
-                    disabled={!accountName}
-                    className={`flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all ${
-                        accountName 
-                        ? 'bg-pink-500 text-white hover:bg-pink-600 shadow-md' 
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                    <ExternalLink size={18} className="mr-2" />
-                    前往查看
-                </button>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left Column: Checklist */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-4 flex items-center">
-                <CheckCircle2 className="mr-2 text-green-500" />
-                步驟 1：基礎項目檢核
-              </h2>
-              <div className="space-y-6">
-                {Object.entries(groupedChecklist).map(([category, items]) => (
-                  <div key={category}>
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
-                        {getCategoryName(category)}
-                    </h3>
-                    <div className="space-y-2">
-                      {items.map(item => (
-                        <div 
-                          key={item.id}
-                          onClick={() => toggleCheck(item.id)}
-                          className={`flex items-start p-2 rounded-lg cursor-pointer transition-all ${
-                            item.checked ? 'bg-green-50' : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className={`mt-0.5 mr-3 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                            item.checked ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'
-                          }`}>
-                            {item.checked && <CheckCircle2 size={14} className="text-white" />}
-                          </div>
-                          <span className={`text-sm ${item.checked ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
-                            {item.text}
-                          </span>
-                        </div>
-                      ))}
+            let html = `
+                <div class="print-header">
+                    <div class="print-header-left">
+                        <h1>IG 帳號健檢診斷書</h1>
+                        <p>專業社群帳號分析報告</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                    <div class="print-header-right">
+                        <div class="label">診斷日期</div>
+                        <div class="value">${date}</div>
+                    </div>
+                </div>
 
-          {/* Right Column: Feedback Areas */}
-          <div className="lg:col-span-2 space-y-6">
+                <div class="print-info">
+                    <div class="print-info-left">
+                        <div class="label">受測帳號</div>
+                        <div class="value">${accountName}</div>
+                    </div>
+                    <div class="print-info-right">
+                        <div class="label">健康度評分</div>
+                        <div class="value" style="color: ${score >= 80 ? '#16a34a' : score >= 50 ? '#ca8a04' : '#ef4444'}">${score}<span style="font-size: 1rem; font-weight: 400; color: #9ca3af;"> / 100</span></div>
+                    </div>
+                </div>
+
+                <div class="print-grid">
+                    <div class="print-section green">
+                        <h3>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #16a34a;">
+                                <path d="M14 10h4.764a2 2 0 0 1 1.789 2.894l-3.646 7.073A2 2 0 0 1 14.964 21H7a2 2 0 0 1-2-2V9a6 6 0 0 1 12 0"></path>
+                            </svg>
+                            做得很好的地方
+                        </h3>
+                        <div class="content">${goodPoints}</div>
+                    </div>
+                    <div class="print-section orange">
+                        <h3>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #c2410c;">
+                                <polyline points="23 6 13.46 15.88 8 10.88 1 17.88 1.6 19 8 12.6 13.46 17.88 25 6 24 0"></polyline>
+                            </svg>
+                            可以更好的地方
+                        </h3>
+                        <div class="content">${improvePoints}</div>
+                    </div>
+                </div>
+
+                <div class="print-checklist">
+                    <h3>詳細檢核項目</h3>
+                    <div class="print-checklist-grid">
+            `;
+
+            checklist.forEach(item => {
+                if (item.checked) {
+                    html += `
+                        <div class="print-checklist-item checked">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #16a34a;" class="print-checklist-icon">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            <span>${item.text}</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="print-checklist-item unchecked">
+                            <div style="width: 1rem; height: 1rem; border: 1px solid #d1d5db; border-radius: 0.25rem; margin-right: 0.5rem;" class="print-checklist-icon"></div>
+                            <span>${item.text}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            html += `
+                    </div>
+                </div>
+
+                <div class="print-footer">
+                    此報告由 IG 帳號健檢工具生成
+                </div>
+            `;
+
+            document.getElementById('printDocument').innerHTML = html;
+        }
+
+        function handlePrint() {
+            generatePrintDocument();
+            window.print();
+        }
+
+        // === 其他功能 ===
+        function openInstagram() {
+            const name = document.getElementById('accountName').value;
+            if (name) {
+                const clean = name.replace('@', '').trim();
+                window.open(`https://www.instagram.com/${clean}/`, '_blank');
+            }
+        }
+
+        function resetForm() {
+            if (confirm('確定要清空所有內容嗎？')) {
+                document.getElementById('accountName').value = '';
+                document.getElementById('customHighlightRaw').value = '';
+                document.getElementById('customIssueRaw').value = '';
+                document.getElementById('goodPoints').value = '';
+                document.getElementById('improvePoints').value = '';
+                checklist.forEach(i => i.checked = false);
+                updateChecklistUI();
+                updateScore();
+            }
+        }
+
+        // === 啟動 ===
+        document.addEventListener('DOMContentLoaded', () => {
+            initChecklist();
+            updateScore();
+            document.getElementById('openInstagramBtn').disabled = true;
             
-            {/* --- 新增：顧問觀察筆記輸入區 --- */}
-            <div className="bg-blue-50 rounded-2xl shadow-sm p-6 border border-blue-100">
-              <h2 className="text-lg font-bold mb-4 flex items-center text-blue-800">
-                <PenTool className="mr-2 text-blue-500" />
-                步驟 2：顧問觀察筆記 (AI 智慧擴寫)
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {/* 亮點輸入 */}
-                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      您看到的亮點 (關鍵字，用逗號分隔)
-                    </label>
-                    <input 
-                      type="text" 
-                      value={customHighlightRaw}
-                      onChange={(e) => setCustomHighlightRaw(e.target.value)}
-                      placeholder="例：限動很好笑，文案很幽默"
-                      className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm"
-                    />
-                 </div>
-                 {/* 痛點輸入 */}
-                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      您看到的痛點 (關鍵字，用逗號分隔)
-                    </label>
-                    <input 
-                      type="text" 
-                      value={customIssueRaw}
-                      onChange={(e) => setCustomIssueRaw(e.target.value)}
-                      placeholder="例：照片很糊，排版太亂"
-                      className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm"
-                    />
-                 </div>
-              </div>
-              <div className="mt-2 text-xs text-blue-400 flex items-center">
-                <Sparkles size={12} className="mr-1" />
-                輸入關鍵字後，按下方的「生成報告」按鈕，系統會自動幫您潤飾成專業語句。
-              </div>
-            </div>
-
-            {/* 1. 很好的地方 */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-green-400">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold flex items-center text-gray-800">
-                  <ThumbsUp className="mr-2 text-green-500" />
-                  做得很好的地方 (Step 3: 結果)
-                </h2>
-                <button
-                  onClick={generateCombinedGoodPoints}
-                  className="flex items-center text-xs md:text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-bold shadow-sm"
-                >
-                  <Sparkles size={16} className="mr-1.5" />
-                  生成優點報告
-                </button>
-              </div>
-              <textarea 
-                value={goodPoints}
-                onChange={(e) => setGoodPoints(e.target.value)}
-                placeholder="點擊右上角按鈕，自動合併「勾選項目」與「您的觀察筆記」..."
-                className="w-full h-64 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none resize-y transition-all"
-              />
-            </div>
-
-            {/* 2. 可以更好的地方 */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-orange-400">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-bold flex items-center text-gray-800">
-                  <TrendingUp className="mr-2 text-orange-500" />
-                  可以更好的地方 (Step 3: 結果)
-                </h2>
-                <button
-                  onClick={generateCombinedImprovePoints}
-                  className="flex items-center text-xs md:text-sm bg-orange-600 text-white px-3 py-1.5 rounded-lg hover:bg-orange-700 transition-colors font-bold shadow-sm"
-                >
-                  <Sparkles size={16} className="mr-1.5" />
-                  生成建議報告
-                </button>
-              </div>
-              <textarea 
-                value={improvePoints}
-                onChange={(e) => setImprovePoints(e.target.value)}
-                placeholder="點擊右上角按鈕，自動合併「未勾選項目」與「您的觀察筆記」..."
-                className="w-full h-64 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none resize-y transition-all"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row gap-4">
-              <button 
-                onClick={copyToClipboard}
-                className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold transition-all ${
-                  showCopySuccess 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {showCopySuccess ? (
-                  <> <CheckCircle2 size={20} className="mr-2" /> 已複製文字 </>
-                ) : (
-                  <> <Copy size={20} className="mr-2" /> 複製文字報告 </>
-                )}
-              </button>
-              
-              <button 
-                onClick={handlePrint}
-                className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold text-white bg-gray-900 hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl"
-              >
-                <FileText size={20} className="mr-2" />
-                下載 / 列印 PDF
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* --- 這是隱藏的列印專用版面 (只有在按下 "列印" 或 "存成PDF" 時才會出現) --- */}
-      <div className="hidden print:block p-8 max-w-3xl mx-auto bg-white">
-        <div className="border-b-2 border-gray-200 pb-6 mb-8 flex justify-between items-end">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">IG 帳號健檢診斷書</h1>
-            <p className="text-gray-500">專業社群帳號分析報告</p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-400 mb-1">診斷日期</div>
-            <div className="font-mono text-gray-600">{new Date().toLocaleDateString()}</div>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-start mb-10 bg-gray-50 p-6 rounded-xl">
-          <div>
-            <div className="text-sm text-gray-500 mb-1">受測帳號</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {accountName || '未指定'}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-500 mb-1">健康度評分</div>
-            <div className={`text-4xl font-black ${getScoreColor(score)}`}>
-              {score} <span className="text-lg text-gray-400 font-normal">/ 100</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-10">
-          <div className="col-span-1">
-             <h3 className="font-bold text-lg text-green-700 mb-3 border-b border-green-200 pb-2 flex items-center">
-               <ThumbsUp size={18} className="mr-2" /> 做得很好的地方
-             </h3>
-             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">
-               {goodPoints || '（無特別備註）'}
-             </div>
-          </div>
-          <div className="col-span-1">
-             <h3 className="font-bold text-lg text-orange-700 mb-3 border-b border-orange-200 pb-2 flex items-center">
-               <TrendingUp size={18} className="mr-2" /> 可以更好的地方
-             </h3>
-             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">
-               {improvePoints || '（無特別備註）'}
-             </div>
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h3 className="font-bold text-lg text-gray-900 mb-4 border-b border-gray-200 pb-2">
-            詳細檢核項目
-          </h3>
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-            {checklist.map(item => (
-              <div key={item.id} className="flex items-center text-sm mb-1">
-                {item.checked ? (
-                  <CheckCircle2 size={16} className="text-green-600 mr-2 flex-shrink-0" />
-                ) : (
-                  <div className="w-4 h-4 border border-gray-300 rounded-full mr-2 flex-shrink-0"></div>
-                )}
-                <span className={item.checked ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                  {item.text}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-12 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-          此報告由 IG 帳號健檢工具生成
-        </div>
-      </div>
-
-    </div>
-  );
-};
-
-export default App;
+            document.getElementById('accountName').addEventListener('input', () => {
+                const btn = document.getElementById('openInstagramBtn');
+                btn.disabled = !document.getElementById('accountName').value.trim();
+            });
+        });
+    </script>
+</body>
+</html>
