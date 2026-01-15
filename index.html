@@ -1,190 +1,202 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IG 帳號健檢診斷書</title>
+import React, { useState, useEffect } from 'react';
+import { 
+  Instagram, 
+  CheckCircle2, 
+  AlertCircle, 
+  Copy, 
+  ThumbsUp, 
+  TrendingUp, 
+  RefreshCw,
+  UserCircle,
+  LayoutGrid,
+  MessageCircle,
+  Star,
+  ExternalLink,
+  Printer,
+  FileText,
+  Sparkles,
+  PenTool
+} from 'lucide-react';
+
+const App = () => {
+  const [accountName, setAccountName] = useState('');
+  
+  // 最終報告內容 (可編輯)
+  const [goodPoints, setGoodPoints] = useState('');
+  const [improvePoints, setImprovePoints] = useState('');
+  
+  // 自訂觀察輸入 (原始關鍵字)
+  const [customHighlightRaw, setCustomHighlightRaw] = useState('');
+  const [customIssueRaw, setCustomIssueRaw] = useState('');
+
+  const [score, setScore] = useState(0);
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
+
+  // 健檢項目清單
+  const [checklist, setChecklist] = useState([
+    { id: 1, text: '大頭貼清晰專業', category: 'profile', checked: false },
+    { id: 2, text: 'ID 簡單好記', category: 'profile', checked: false },
+    { id: 3, text: '名稱含搜尋關鍵字', category: 'profile', checked: false },
+    { id: 4, text: 'Bio 清楚說明價值', category: 'bio', checked: false },
+    { id: 5, text: '包含 CTA 行動呼籲', category: 'bio', checked: false },
+    { id: 6, text: '精選動態分類清晰', category: 'bio', checked: false },
+    { id: 7, text: '版面色調風格一致', category: 'content', checked: false },
+    { id: 8, text: '首圖清晰標題吸睛', category: 'content', checked: false },
+    { id: 9, text: '保持持續更新頻率', category: 'content', checked: false },
+    { id: 10, text: '積極回覆留言互動', category: 'engagement', checked: false },
+  ]);
+
+  // 定義每個檢查項目對應的「改善建議」 (針對未勾選)
+  const suggestionMap = {
+    1: '大頭貼建議更換為清晰、具專業感或強烈個人特色的照片，增加第一眼辨識度。',
+    2: '帳號 ID 建議簡化，去除過多底線或數字，讓粉絲更容易口頭傳播與搜尋。',
+    3: '名稱 (Name) 欄位建議加入「產業」或「服務」關鍵字，提升被潛在客戶搜尋到的機會。',
+    4: 'Bio 說明不夠直觀，建議用條列式清楚寫出「你是誰」以及「你能解決什麼問題」。',
+    5: 'Bio 缺乏明確行動呼籲 (CTA)，建議加上「⬇️ 點擊下方連結...」具體引導粉絲點擊。',
+    6: '精選動態建議製作統一色系或風格的封面圖，並將過期資訊歸檔，保持版面整潔。',
+    7: '版面視覺較為跳躍，建議固定 1-2 種主色調或濾鏡風格，建立品牌一致性。',
+    8: '貼文首圖資訊量過多或字體太小，建議優化標題設計，加入痛點或好奇心元素提升點擊。',
+    9: '近期更新頻率不穩定，建議制定內容行事曆，維持每週固定發文（如 2-3 篇）以維持觸及。',
+    10: '建議更積極回覆留言，並善用限時動態問答與粉絲互動，提升帳號親密度與演算法權重。'
+  };
+
+  // 定義每個檢查項目對應的「優點讚美」 (針對已勾選)
+  const goodPointMap = {
+    1: '大頭貼非常清晰且具專業感，第一眼就能傳遞出良好的品牌信任度。',
+    2: '帳號 ID 簡潔好記，沒有多餘符號，非常有利於粉絲搜尋與記憶。',
+    3: '名稱設定精準，包含了重要關鍵字，能有效提升在搜尋結果的曝光度。',
+    4: 'Bio 寫得非常清楚，能在幾秒鐘內讓訪客知道你能提供什麼價值。',
+    5: 'Bio 中的 CTA 設定明確，能有效引導粉絲進行下一步動作（點擊連結）。',
+    6: '精選動態封面風格統一，視覺上非常整潔舒適，分類邏輯也很清楚。',
+    7: '版面色調與風格維持得很好，具有高度的一致性，品牌識別度高。',
+    8: '貼文首圖設計吸睛，標題字體清晰，能有效吸引人點進去觀看。',
+    9: '更新頻率非常穩定，能持續維持與粉絲的互動熱度，這點非常棒！',
+    10: '與粉絲的互動非常積極，回覆留言迅速且親切，社群黏著度經營得很好。'
+  };
+
+  // --- 智慧句型庫 (模擬 AI 潤飾) ---
+  
+  // 優點讚美句型庫 (Mega Pack)
+  const goodTemplates = [
+    (key) => `觀察到您的${key}，這展現了非常獨特的個人魅力，建議持續保持！`,
+    (key) => `特別喜歡您在${key}的處理，這能有效建立與粉絲之間的深層連結。`,
+    (key) => `您的${key}是一個很大的亮點，在同類型的帳號中非常有記憶點。`,
+    (key) => `看得出來在${key}上下了很多功夫，整體的質感非常優秀。`,
+    (key) => `關於${key}的部分，您掌握得非常好，這會大幅提升粉絲的信任感。`,
+    (key) => `這是一個很棒的細節！您的${key}讓整個帳號看起來更有溫度。`,
+    (key) => `非常欣賞${key}的呈現方式，這也是目前演算法比較偏好的優質內容特徵。`,
+    (key) => `能做到${key}其實不容易，這顯示了您對品牌經營的用心。`,
+    (key) => `從${key}可以看出您很清楚受眾喜歡什麼，這是經營成功的關鍵。`,
+    (key) => `您的${key}非常有辨識度，這有助於在粉絲心中建立強烈的品牌心佔率。`,
+    (key) => `針對${key}，我覺得這是您目前最大的競爭優勢之一。`,
+    (key) => `瀏覽您的帳號時，${key}讓我眼睛為之一亮，非常有質感。`,
+    (key) => `保持${key}的高水準表現，長期下來會累積很可觀的粉絲紅利。`,
+    (key) => `您的${key}處理得恰到好處，既不會太過強硬，又能清楚傳達訊息。`,
+    (key) => `在視覺與內容上，${key}都達到了很高的平衡，非常專業。`,
+    (key) => `這點做得很好！${key}能夠有效降低粉絲的流失率。`,
+    (key) => `我特別想稱讚${key}，這讓新進來的粉絲能快速抓到重點。`,
+    (key) => `持續維持${key}的優點，這會是您未來變現的重要基礎。`,
+    (key) => `比起許多同性質帳號，您的${key}顯得更加成熟且具吸引力。`,
+    (key) => `這是一個很聰明的策略，透過${key}來強化個人品牌的獨特性。`
+  ];
+
+  // 缺點建議句型庫 (Mega Pack)
+  const improveTemplates = [
+    (key) => `目前觀察到${key}，建議可以稍微調整方向，會讓整體質感更升級。`,
+    (key) => `雖然內容不錯，但${key}可能會影響粉絲的觀看體驗，建議優先優化此處。`,
+    (key) => `針對${key}的部分，建議可以參考競品的做法進行微調，以提升轉換率。`,
+    (key) => `發現${key}，這可能是導致觸及率受限的原因之一，建議嘗試不同的呈現方式。`,
+    (key) => `在${key}上如果能多一點巧思，我相信粉絲的互動意願會大幅提高。`,
+    (key) => `建議重新檢視${key}，因為這通常是新粉絲決定是否追蹤的關鍵秒數。`,
+    (key) => `目前${key}的呈現稍微可惜了一些，若能優化，整體的專業度會加分很多。`,
+    (key) => `可以嘗試優化${key}，這能幫助演算法更精準地抓到您的受眾輪廓。`,
+    (key) => `關於${key}，建議可以設定更明確的規範，讓版面看起來更整齊劃一。`,
+    (key) => `若能改善${key}，將能有效降低粉絲閱讀時的跳出率。`,
+    (key) => `我覺得${key}還有很大的進步空間，調整後可能會看到數據明顯的成長。`,
+    (key) => `目前${key}稍微有點模糊，建議更直觀一點，降低粉絲的思考成本。`,
+    (key) => `這是一個常見的小問題，修正${key}後，帳號的精緻度會立刻提升。`,
+    (key) => `為了長遠經營，建議在${key}上多花一點時間打磨。`,
+    (key) => `觀察到${key}的頻率或品質較不穩定，建議制定 SOP 來維持水準。`,
+    (key) => `如果能將${key}做得更極致，這會成為您與競爭對手拉開差距的關鍵。`,
+    (key) => `對於${key}，建議可以多參考國外類似帳號的操作手法。`,
+    (key) => `小心${key}可能會讓粉絲產生視覺疲勞，建議適度調整。`,
+    (key) => `雖然目前${key}不是大問題，但若要擴大流量池，優化它是必須的。`,
+    (key) => `建議把${key}列為下個階段的首要優化目標。`
+  ];
+
+  const getRandomTemplate = (templates, keyword) => {
+    const randomIndex = Math.floor(Math.random() * templates.length);
+    return templates[randomIndex](keyword);
+  };
+
+  // 綜合生成：優點
+  const generateCombinedGoodPoints = () => {
+    let finalOutput = '';
+
+    // 1. 處理勾選項目
+    const checkedItems = checklist.filter(item => item.checked);
+    if (checkedItems.length > 0) {
+      finalOutput += checkedItems.map(item => `✅ ${goodPointMap[item.id]}`).join('\n');
+    }
+
+    // 2. 處理自訂關鍵字 (如果有)
+    if (customHighlightRaw.trim()) {
+      const keywords = customHighlightRaw.split(/[,，\n]/).filter(k => k.trim()); // 支援逗號或換行分隔
+      if (keywords.length > 0) {
+        finalOutput += '\n\n✨ [顧問特別觀察]\n';
+        keywords.forEach(key => {
+            finalOutput += `• ${getRandomTemplate(goodTemplates, key.trim())}\n`;
+        });
+      }
+    }
+
+    if (!finalOutput) finalOutput = '（目前沒有勾選任何優點，也沒有輸入自訂觀察）';
+    setGoodPoints(finalOutput);
+  };
+
+  // 綜合生成：建議
+  const generateCombinedImprovePoints = () => {
+    let finalOutput = '';
+
+    // 1. 處理未勾選項目
+    const uncheckedItems = checklist.filter(item => !item.checked);
+    if (uncheckedItems.length > 0) {
+      finalOutput += uncheckedItems.map(item => `⚠️ ${suggestionMap[item.id]}`).join('\n');
+    }
+
+    // 2. 處理自訂關鍵字 (如果有)
+    if (customIssueRaw.trim()) {
+      const keywords = customIssueRaw.split(/[,，\n]/).filter(k => k.trim());
+      if (keywords.length > 0) {
+        finalOutput += '\n\n💡 [客製化優化策略]\n';
+        keywords.forEach(key => {
+            finalOutput += `• ${getRandomTemplate(improveTemplates, key.trim())}\n`;
+        });
+      }
+    }
+
+    if (!finalOutput) finalOutput = '（太棒了！目前基礎項目全數通過）';
+    setImprovePoints(finalOutput);
+  };
+
+  // 計算分數
+  useEffect(() => {
+    const checkedCount = checklist.filter(item => item.checked).length;
+    const calculatedScore = Math.round((checkedCount / checklist.length) * 100);
+    setScore(calculatedScore);
+  }, [checklist]);
+
+  const toggleCheck = (id) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  const generateReportText = () => {
+    const checkedItems = checklist.filter(i => i.checked).map(i => `✅ ${i.text}`).join('\n');
+    const uncheckedItems = checklist.filter(i => !i.checked).map(i => `⬜ ${i.text}`).join('\n');
     
-    <!-- 引入 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 設定 Tailwind 的列印樣式與捲軸 -->
-    <style>
-        @media print {
-            body { -webkit-print-color-adjust: exact; }
-        }
-        textarea::-webkit-scrollbar { width: 8px; }
-        textarea::-webkit-scrollbar-track { background: #f1f1f1; }
-        textarea::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-        textarea::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-    </style>
-
-    <!-- 引入 React 和 ReactDOM (全域 UMD 版本，適合直接開啟檔案) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- 引入 Babel (編譯 JSX) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans">
-
-    <div id="root"></div>
-
-    <script type="text/babel">
-        // 1. 從全域物件取得 React 功能，不使用 import 以避免本地端 CORS 錯誤
-        const { useState, useEffect } = React;
-
-        // 2. 內建圖標組件 (Inline SVG)，解決本地端 module loading 問題
-        const IconBase = ({ children, color = "currentColor", size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                {children}
-            </svg>
-        );
-
-        const Instagram = (props) => <IconBase {...props}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></IconBase>;
-        const CheckCircle2 = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
-        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
-        const Copy = (props) => <IconBase {...props}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconBase>;
-        const ThumbsUp = (props) => <IconBase {...props}><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></IconBase>;
-        const TrendingUp = (props) => <IconBase {...props}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></IconBase>;
-        const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>;
-        const ExternalLink = (props) => <IconBase {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></IconBase>;
-        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
-        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
-        const PenTool = (props) => <IconBase {...props}><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></IconBase>;
-
-        // 3. 主程式邏輯
-        const App = () => {
-            const [accountName, setAccountName] = useState('');
-            
-            // 最終報告內容 (可編輯)
-            const [goodPoints, setGoodPoints] = useState('');
-            const [improvePoints, setImprovePoints] = useState('');
-            
-            // 自訂觀察輸入 (原始關鍵字)
-            const [customHighlightRaw, setCustomHighlightRaw] = useState('');
-            const [customIssueRaw, setCustomIssueRaw] = useState('');
-
-            const [score, setScore] = useState(0);
-            const [showCopySuccess, setShowCopySuccess] = useState(false);
-
-            // 健檢項目清單
-            const [checklist, setChecklist] = useState([
-                { id: 1, text: '大頭貼清晰專業', category: 'profile', checked: false },
-                { id: 2, text: 'ID 簡單好記', category: 'profile', checked: false },
-                { id: 3, text: '名稱含搜尋關鍵字', category: 'profile', checked: false },
-                { id: 4, text: 'Bio 清楚說明價值', category: 'bio', checked: false },
-                { id: 5, text: '包含 CTA 行動呼籲', category: 'bio', checked: false },
-                { id: 6, text: '精選動態分類清晰', category: 'bio', checked: false },
-                { id: 7, text: '版面色調風格一致', category: 'content', checked: false },
-                { id: 8, text: '首圖清晰標題吸睛', category: 'content', checked: false },
-                { id: 9, text: '保持持續更新頻率', category: 'content', checked: false },
-                { id: 10, text: '積極回覆留言互動', category: 'engagement', checked: false },
-            ]);
-
-            // 定義每個檢查項目對應的「改善建議」 (針對未勾選)
-            const suggestionMap = {
-                1: '大頭貼建議更換為清晰、具專業感或強烈個人特色的照片，增加第一眼辨識度。',
-                2: '帳號 ID 建議簡化，去除過多底線或數字，讓粉絲更容易口頭傳播與搜尋。',
-                3: '名稱 (Name) 欄位建議加入「產業」或「服務」關鍵字，提升被潛在客戶搜尋到的機會。',
-                4: 'Bio 說明不夠直觀，建議用條列式清楚寫出「你是誰」以及「你能解決什麼問題」。',
-                5: 'Bio 缺乏明確行動呼籲 (CTA)，建議加上「⬇️ 點擊下方連結...」具體引導粉絲點擊。',
-                6: '精選動態建議製作統一色系或風格的封面圖，並將過期資訊歸檔，保持版面整潔。',
-                7: '版面視覺較為跳躍，建議固定 1-2 種主色調或濾鏡風格，建立品牌一致性。',
-                8: '貼文首圖資訊量過多或字體太小，建議優化標題設計，加入痛點或好奇心元素提升點擊。',
-                9: '近期更新頻率不穩定，建議制定內容行事曆，維持每週固定發文（如 2-3 篇）以維持觸及。',
-                10: '建議更積極回覆留言，並善用限時動態問答與粉絲互動，提升帳號親密度與演算法權重。'
-            };
-
-            // 定義每個檢查項目對應的「優點讚美」 (針對已勾選)
-            const goodPointMap = {
-                1: '大頭貼非常清晰且具專業感，第一眼就能傳遞出良好的品牌信任度。',
-                2: '帳號 ID 簡潔好記，沒有多餘符號，非常有利於粉絲搜尋與記憶。',
-                3: '名稱設定精準，包含了重要關鍵字，能有效提升在搜尋結果的曝光度。',
-                4: 'Bio 寫得非常清楚，能在幾秒鐘內讓訪客知道你能提供什麼價值。',
-                5: 'Bio 中的 CTA 設定明確，能有效引導粉絲進行下一步動作（點擊連結）。',
-                6: '精選動態封面風格統一，視覺上非常整潔舒適，分類邏輯也很清楚。',
-                7: '版面色調與風格維持得很好，具有高度的一致性，品牌識別度高。',
-                8: '貼文首圖設計吸睛，標題字體清晰，能有效吸引人點進去觀看。',
-                9: '更新頻率非常穩定，能持續維持與粉絲的互動熱度，這點非常棒！',
-                10: '與粉絲的互動非常積極，回覆留言迅速且親切，社群黏著度經營得很好。'
-            };
-
-            // --- 智慧句型庫 (模擬 AI 潤飾) ---
-            const goodTemplates = [
-                (key) => `觀察到您的${key}，這展現了非常獨特的個人魅力，建議持續保持！`,
-                (key) => `特別喜歡您${key}的部分，這能有效建立與粉絲之間的深層連結。`,
-                (key) => `您的${key}是一個很大的亮點，在同類型的帳號中非常有記憶點。`,
-                (key) => `看得出來在${key}上下了很多功夫，整體的質感非常優秀。`
-            ];
-
-            const improveTemplates = [
-                (key) => `目前觀察到${key}，建議可以稍微調整方向，會讓整體質感更升級。`,
-                (key) => `雖然內容不錯，但${key}可能會影響粉絲的觀看體驗，建議優先優化此處。`,
-                (key) => `針對${key}的部分，建議可以參考競品的做法進行微調，以提升轉換率。`,
-                (key) => `發現${key}，這可能是導致觸及率受限的原因之一，建議嘗試不同的呈現方式。`
-            ];
-
-            const getRandomTemplate = (templates, keyword) => {
-                const randomIndex = Math.floor(Math.random() * templates.length);
-                return templates[randomIndex](keyword);
-            };
-
-            const generateCombinedGoodPoints = () => {
-                let finalOutput = '';
-                const checkedItems = checklist.filter(item => item.checked);
-                if (checkedItems.length > 0) {
-                    finalOutput += checkedItems.map(item => `✅ ${goodPointMap[item.id]}`).join('\n');
-                }
-                if (customHighlightRaw.trim()) {
-                    const keywords = customHighlightRaw.split(/[,，\n]/).filter(k => k.trim());
-                    if (keywords.length > 0) {
-                        finalOutput += '\n\n✨ [顧問特別觀察]\n';
-                        keywords.forEach(key => {
-                            finalOutput += `• ${getRandomTemplate(goodTemplates, key.trim())}\n`;
-                        });
-                    }
-                }
-                if (!finalOutput) finalOutput = '（目前沒有勾選任何優點，也沒有輸入自訂觀察）';
-                setGoodPoints(finalOutput);
-            };
-
-            const generateCombinedImprovePoints = () => {
-                let finalOutput = '';
-                const uncheckedItems = checklist.filter(item => !item.checked);
-                if (uncheckedItems.length > 0) {
-                    finalOutput += uncheckedItems.map(item => `⚠️ ${suggestionMap[item.id]}`).join('\n');
-                }
-                if (customIssueRaw.trim()) {
-                    const keywords = customIssueRaw.split(/[,，\n]/).filter(k => k.trim());
-                    if (keywords.length > 0) {
-                        finalOutput += '\n\n💡 [客製化優化策略]\n';
-                        keywords.forEach(key => {
-                            finalOutput += `• ${getRandomTemplate(improveTemplates, key.trim())}\n`;
-                        });
-                    }
-                }
-                if (!finalOutput) finalOutput = '（太棒了！目前基礎項目全數通過）';
-                setImprovePoints(finalOutput);
-            };
-
-            useEffect(() => {
-                const checkedCount = checklist.filter(item => item.checked).length;
-                const calculatedScore = Math.round((checkedCount / checklist.length) * 100);
-                setScore(calculatedScore);
-            }, [checklist]);
-
-            const toggleCheck = (id) => {
-                setChecklist(prev => prev.map(item => 
-                    item.id === id ? { ...item, checked: !item.checked } : item
-                ));
-            };
-
-            const generateReportText = () => {
-                const checkedItems = checklist.filter(i => i.checked).map(i => `✅ ${i.text}`).join('\n');
-                const uncheckedItems = checklist.filter(i => !i.checked).map(i => `⬜ ${i.text}`).join('\n');
-                
-                return `📊 IG 帳號健檢報告
+    return `📊 IG 帳號健檢報告
 -------------------------
 👤 帳號：${accountName || '未填寫'}
 🏆 健康度分數：${score} 分
@@ -205,280 +217,377 @@ ${uncheckedItems}
 
 📅 健檢日期：${new Date().toLocaleDateString()}
 `;
-            };
+  };
 
-            const copyToClipboard = () => {
-                const text = generateReportText();
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                textArea.style.top = "0";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    const successful = document.execCommand('copy');
-                    if (successful) {
-                        triggerSuccess();
-                    } else {
-                        alert('複製失敗，請手動複製內容。');
-                    }
-                } catch (err) {
-                    console.error('無法複製', err);
-                }
-                document.body.removeChild(textArea);
-            };
+  const copyToClipboard = () => {
+    const text = generateReportText();
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        triggerSuccess();
+      } else {
+        alert('複製失敗，請手動複製內容。');
+      }
+    } catch (err) {
+      console.error('無法複製', err);
+    }
+    
+    document.body.removeChild(textArea);
+  };
 
-            const handlePrint = () => {
-                window.print();
-            };
+  const handlePrint = () => {
+    window.print();
+  };
 
-            const triggerSuccess = () => {
-                setShowCopySuccess(true);
-                setTimeout(() => setShowCopySuccess(false), 2000);
-            };
+  const triggerSuccess = () => {
+    setShowCopySuccess(true);
+    setTimeout(() => setShowCopySuccess(false), 2000);
+  };
 
-            const resetForm = () => {
-                if(confirm('確定要清空所有內容嗎？')) {
-                    setAccountName('');
-                    setGoodPoints('');
-                    setImprovePoints('');
-                    setCustomHighlightRaw('');
-                    setCustomIssueRaw('');
-                    setChecklist(prev => prev.map(item => ({...item, checked: false})));
-                }
-            };
+  const resetForm = () => {
+    if(confirm('確定要清空所有內容嗎？')) {
+      setAccountName('');
+      setGoodPoints('');
+      setImprovePoints('');
+      setCustomHighlightRaw('');
+      setCustomIssueRaw('');
+      setChecklist(prev => prev.map(item => ({...item, checked: false})));
+    }
+  };
 
-            const openInstagram = () => {
-                if (accountName) {
-                    const cleanName = accountName.replace('@', '').trim();
-                    window.open(`https://www.instagram.com/${cleanName}/`, '_blank');
-                }
-            };
+  const openInstagram = () => {
+    if (accountName) {
+      const cleanName = accountName.replace('@', '').trim();
+      window.open(`https://www.instagram.com/${cleanName}/`, '_blank');
+    }
+  };
 
-            const getScoreColor = (s) => {
-                if (s >= 80) return 'text-green-600';
-                if (s >= 50) return 'text-yellow-600';
-                return 'text-red-500';
-            };
+  const getScoreColor = (s) => {
+    if (s >= 80) return 'text-green-600';
+    if (s >= 50) return 'text-yellow-600';
+    return 'text-red-500';
+  };
 
-            const getCategoryName = (cat) => {
-                switch(cat) {
-                    case 'profile': return '基本門面';
-                    case 'bio': return '簡介與動態';
-                    case 'content': return '內容與排版';
-                    case 'engagement': return '互動表現';
-                    default: return '其他';
-                }
-            };
+  const getCategoryName = (cat) => {
+    switch(cat) {
+      case 'profile': return '基本門面';
+      case 'bio': return '簡介與動態';
+      case 'content': return '內容與排版';
+      case 'engagement': return '互動表現';
+      default: return '其他';
+    }
+  };
 
-            const groupedChecklist = checklist.reduce((acc, item) => {
-                if (!acc[item.category]) acc[item.category] = [];
-                acc[item.category].push(item);
-                return acc;
-            }, {});
+  // Group checklist by category for display
+  const groupedChecklist = checklist.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {});
 
-            return (
-                <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
-                    {/* --- 螢幕顯示介面 --- */}
-                    <div className="p-4 md:p-8 print:hidden">
-                        <div className="max-w-4xl mx-auto space-y-6">
-                            
-                            {/* Header */}
-                            <header className="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row items-center justify-between border-t-4 border-pink-500">
-                                <div className="flex items-center space-x-3 mb-4 md:mb-0">
-                                    <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-3 rounded-full text-white">
-                                        <Instagram size={32} />
-                                    </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold text-gray-900">IG 帳號健檢診斷書</h1>
-                                        <p className="text-gray-500 text-sm">快速分析、智慧擴寫、一鍵生成報告</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="text-right hidden md:block">
-                                        <div className="text-sm text-gray-500">當前健康度</div>
-                                        <div className={`text-3xl font-black ${getScoreColor(score)}`}>{score} 分</div>
-                                    </div>
-                                    <button onClick={resetForm} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="重置表單">
-                                        <RefreshCw size={20} />
-                                    </button>
-                                </div>
-                            </header>
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <header className="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row items-center justify-between border-t-4 border-pink-500">
+          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-3 rounded-full text-white">
+              <Instagram size={32} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">IG 帳號健檢診斷書</h1>
+              <p className="text-gray-500 text-sm">快速分析、智慧擴寫、一鍵生成報告</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-right hidden md:block">
+              <div className="text-sm text-gray-500">當前健康度</div>
+              <div className={`text-3xl font-black ${getScoreColor(score)}`}>{score} 分</div>
+            </div>
+            <button 
+              onClick={resetForm}
+              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+              title="重置表單"
+            >
+              <RefreshCw size={20} />
+            </button>
+          </div>
+        </header>
 
-                            {/* Input Section */}
-                            <div className="bg-white rounded-2xl shadow-sm p-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">受測帳號 (ID)</label>
-                                <div className="flex flex-col md:flex-row gap-3">
-                                    <div className="flex-1 flex items-center bg-gray-100 rounded-lg px-4 py-2">
-                                        <span className="text-gray-500 mr-2 font-bold">@</span>
-                                        <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="your_instagram_id" className="bg-transparent border-none outline-none w-full text-lg font-medium text-gray-900 placeholder-gray-400" />
-                                    </div>
-                                    <button onClick={openInstagram} disabled={!accountName} className={`flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all ${accountName ? 'bg-pink-500 text-white hover:bg-pink-600 shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-                                        <ExternalLink size={18} className="mr-2" />
-                                        前往查看
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* Left Column: Checklist */}
-                                <div className="lg:col-span-1 space-y-6">
-                                    <div className="bg-white rounded-2xl shadow-sm p-6">
-                                        <h2 className="text-lg font-bold mb-4 flex items-center">
-                                            <CheckCircle2 className="mr-2 text-green-500" />
-                                            步驟 1：基礎項目檢核
-                                        </h2>
-                                        <div className="space-y-6">
-                                            {Object.entries(groupedChecklist).map(([category, items]) => (
-                                                <div key={category}>
-                                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center">{getCategoryName(category)}</h3>
-                                                    <div className="space-y-2">
-                                                        {items.map(item => (
-                                                            <div key={item.id} onClick={() => toggleCheck(item.id)} className={`flex items-start p-2 rounded-lg cursor-pointer transition-all ${item.checked ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
-                                                                <div className={`mt-0.5 mr-3 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${item.checked ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'}`}>
-                                                                    {item.checked && <CheckCircle2 size={14} className="text-white" />}
-                                                                </div>
-                                                                <span className={`text-sm ${item.checked ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>{item.text}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    {/* 顧問觀察筆記 */}
-                                    <div className="bg-blue-50 rounded-2xl shadow-sm p-6 border border-blue-100">
-                                        <h2 className="text-lg font-bold mb-4 flex items-center text-blue-800">
-                                            <PenTool className="mr-2 text-blue-500" />
-                                            步驟 2：顧問觀察筆記 (AI 智慧擴寫)
-                                        </h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">您看到的亮點 (關鍵字，用逗號分隔)</label>
-                                                <input type="text" value={customHighlightRaw} onChange={(e) => setCustomHighlightRaw(e.target.value)} placeholder="例：限動很好笑，文案很幽默" className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">您看到的痛點 (關鍵字，用逗號分隔)</label>
-                                                <input type="text" value={customIssueRaw} onChange={(e) => setCustomIssueRaw(e.target.value)} placeholder="例：照片很糊，排版太亂" className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm" />
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 text-xs text-blue-400 flex items-center">
-                                            <Sparkles size={12} className="mr-1" />
-                                            輸入關鍵字後，按下方的「生成報告」按鈕，系統會自動幫您潤飾成專業語句。
-                                        </div>
-                                    </div>
-
-                                    {/* 1. 很好的地方 */}
-                                    <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-green-400">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h2 className="text-lg font-bold flex items-center text-gray-800">
-                                                <ThumbsUp className="mr-2 text-green-500" />
-                                                做得很好的地方 (Step 3: 結果)
-                                            </h2>
-                                            <button onClick={generateCombinedGoodPoints} className="flex items-center text-xs md:text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-bold shadow-sm">
-                                                <Sparkles size={16} className="mr-1.5" /> 生成優點報告
-                                            </button>
-                                        </div>
-                                        <textarea value={goodPoints} onChange={(e) => setGoodPoints(e.target.value)} placeholder="點擊右上角按鈕，自動合併「勾選項目」與「您的觀察筆記」..." className="w-full h-32 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none resize-none transition-all"></textarea>
-                                    </div>
-
-                                    {/* 2. 可以更好的地方 */}
-                                    <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-orange-400">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h2 className="text-lg font-bold flex items-center text-gray-800">
-                                                <TrendingUp className="mr-2 text-orange-500" />
-                                                可以更好的地方 (Step 3: 結果)
-                                            </h2>
-                                            <button onClick={generateCombinedImprovePoints} className="flex items-center text-xs md:text-sm bg-orange-600 text-white px-3 py-1.5 rounded-lg hover:bg-orange-700 transition-colors font-bold shadow-sm">
-                                                <Sparkles size={16} className="mr-1.5" /> 生成建議報告
-                                            </button>
-                                        </div>
-                                        <textarea value={improvePoints} onChange={(e) => setImprovePoints(e.target.value)} placeholder="點擊右上角按鈕，自動合併「未勾選項目」與「您的觀察筆記」..." className="w-full h-32 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none resize-none transition-all"></textarea>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row gap-4">
-                                        <button onClick={copyToClipboard} className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold transition-all ${showCopySuccess ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                                            {showCopySuccess ? <> <CheckCircle2 size={20} className="mr-2" /> 已複製文字 </> : <> <Copy size={20} className="mr-2" /> 複製文字報告 </>}
-                                        </button>
-                                        <button onClick={handlePrint} className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold text-white bg-gray-900 hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl">
-                                            <FileText size={20} className="mr-2" /> 下載 / 列印 PDF
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* --- 列印專用版面 --- */}
-                    <div className="hidden print:block p-8 max-w-3xl mx-auto bg-white">
-                        <div className="border-b-2 border-gray-200 pb-6 mb-8 flex justify-between items-end">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">IG 帳號健檢診斷書</h1>
-                                <p className="text-gray-500">專業社群帳號分析報告</p>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm text-gray-400 mb-1">診斷日期</div>
-                                <div className="font-mono text-gray-600">{new Date().toLocaleDateString()}</div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between items-start mb-10 bg-gray-50 p-6 rounded-xl">
-                            <div>
-                                <div className="text-sm text-gray-500 mb-1">受測帳號</div>
-                                <div className="text-2xl font-bold text-gray-800">{accountName || '未指定'}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-sm text-gray-500 mb-1">健康度評分</div>
-                                <div className={`text-4xl font-black ${getScoreColor(score)}`}>
-                                    {score} <span className="text-lg text-gray-400 font-normal">/ 100</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-8 mb-10">
-                            <div className="col-span-1">
-                                <h3 className="font-bold text-lg text-green-700 mb-3 border-b border-green-200 pb-2 flex items-center">
-                                    <ThumbsUp size={18} className="mr-2" /> 做得很好的地方
-                                </h3>
-                                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">{goodPoints || '（無特別備註）'}</div>
-                            </div>
-                            <div className="col-span-1">
-                                <h3 className="font-bold text-lg text-orange-700 mb-3 border-b border-orange-200 pb-2 flex items-center">
-                                    <TrendingUp size={18} className="mr-2" /> 可以更好的地方
-                                </h3>
-                                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">{improvePoints || '（無特別備註）'}</div>
-                            </div>
-                        </div>
-
-                        <div className="mb-8">
-                            <h3 className="font-bold text-lg text-gray-900 mb-4 border-b border-gray-200 pb-2">詳細檢核項目</h3>
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                                {checklist.map(item => (
-                                    <div key={item.id} className="flex items-center text-sm mb-1">
-                                        {item.checked ? <CheckCircle2 size={16} className="text-green-600 mr-2 flex-shrink-0" /> : <div className="w-4 h-4 border border-gray-300 rounded-full mr-2 flex-shrink-0"></div>}
-                                        <span className={item.checked ? 'text-gray-900 font-medium' : 'text-gray-400'}>{item.text}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mt-12 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
-                            此報告由 IG 帳號健檢工具生成
-                        </div>
-                    </div>
+        {/* Input Section */}
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">受測帳號 (ID)</label>
+            <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 flex items-center bg-gray-100 rounded-lg px-4 py-2">
+                    <span className="text-gray-500 mr-2 font-bold">@</span>
+                    <input 
+                        type="text" 
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                        placeholder="your_instagram_id"
+                        className="bg-transparent border-none outline-none w-full text-lg font-medium text-gray-900 placeholder-gray-400"
+                    />
                 </div>
-            );
-        };
+                <button
+                    onClick={openInstagram}
+                    disabled={!accountName}
+                    className={`flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all ${
+                        accountName 
+                        ? 'bg-pink-500 text-white hover:bg-pink-600 shadow-md' 
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                    <ExternalLink size={18} className="mr-2" />
+                    前往查看
+                </button>
+            </div>
+        </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left Column: Checklist */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-lg font-bold mb-4 flex items-center">
+                <CheckCircle2 className="mr-2 text-green-500" />
+                步驟 1：基礎項目檢核
+              </h2>
+              <div className="space-y-6">
+                {Object.entries(groupedChecklist).map(([category, items]) => (
+                  <div key={category}>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
+                        {getCategoryName(category)}
+                    </h3>
+                    <div className="space-y-2">
+                      {items.map(item => (
+                        <div 
+                          key={item.id}
+                          onClick={() => toggleCheck(item.id)}
+                          className={`flex items-start p-2 rounded-lg cursor-pointer transition-all ${
+                            item.checked ? 'bg-green-50' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className={`mt-0.5 mr-3 flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                            item.checked ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'
+                          }`}>
+                            {item.checked && <CheckCircle2 size={14} className="text-white" />}
+                          </div>
+                          <span className={`text-sm ${item.checked ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                            {item.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Feedback Areas */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* --- 新增：顧問觀察筆記輸入區 --- */}
+            <div className="bg-blue-50 rounded-2xl shadow-sm p-6 border border-blue-100">
+              <h2 className="text-lg font-bold mb-4 flex items-center text-blue-800">
+                <PenTool className="mr-2 text-blue-500" />
+                步驟 2：顧問觀察筆記 (AI 智慧擴寫)
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {/* 亮點輸入 */}
+                 <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                      您看到的亮點 (關鍵字，用逗號分隔)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={customHighlightRaw}
+                      onChange={(e) => setCustomHighlightRaw(e.target.value)}
+                      placeholder="例：限動很好笑，文案很幽默"
+                      className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm"
+                    />
+                 </div>
+                 {/* 痛點輸入 */}
+                 <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                      您看到的痛點 (關鍵字，用逗號分隔)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={customIssueRaw}
+                      onChange={(e) => setCustomIssueRaw(e.target.value)}
+                      placeholder="例：照片很糊，排版太亂"
+                      className="w-full p-3 rounded-xl border border-blue-200 focus:border-blue-400 outline-none text-sm"
+                    />
+                 </div>
+              </div>
+              <div className="mt-2 text-xs text-blue-400 flex items-center">
+                <Sparkles size={12} className="mr-1" />
+                輸入關鍵字後，按下方的「生成報告」按鈕，系統會自動幫您潤飾成專業語句。
+              </div>
+            </div>
+
+            {/* 1. 很好的地方 */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-green-400">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-bold flex items-center text-gray-800">
+                  <ThumbsUp className="mr-2 text-green-500" />
+                  做得很好的地方 (Step 3: 結果)
+                </h2>
+                <button
+                  onClick={generateCombinedGoodPoints}
+                  className="flex items-center text-xs md:text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-bold shadow-sm"
+                >
+                  <Sparkles size={16} className="mr-1.5" />
+                  生成優點報告
+                </button>
+              </div>
+              <textarea 
+                value={goodPoints}
+                onChange={(e) => setGoodPoints(e.target.value)}
+                placeholder="點擊右上角按鈕，自動合併「勾選項目」與「您的觀察筆記」..."
+                className="w-full h-64 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 outline-none resize-y transition-all"
+              />
+            </div>
+
+            {/* 2. 可以更好的地方 */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 border-l-4 border-orange-400">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-bold flex items-center text-gray-800">
+                  <TrendingUp className="mr-2 text-orange-500" />
+                  可以更好的地方 (Step 3: 結果)
+                </h2>
+                <button
+                  onClick={generateCombinedImprovePoints}
+                  className="flex items-center text-xs md:text-sm bg-orange-600 text-white px-3 py-1.5 rounded-lg hover:bg-orange-700 transition-colors font-bold shadow-sm"
+                >
+                  <Sparkles size={16} className="mr-1.5" />
+                  生成建議報告
+                </button>
+              </div>
+              <textarea 
+                value={improvePoints}
+                onChange={(e) => setImprovePoints(e.target.value)}
+                placeholder="點擊右上角按鈕，自動合併「未勾選項目」與「您的觀察筆記」..."
+                className="w-full h-64 p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none resize-y transition-all"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row gap-4">
+              <button 
+                onClick={copyToClipboard}
+                className={`flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold transition-all ${
+                  showCopySuccess 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {showCopySuccess ? (
+                  <> <CheckCircle2 size={20} className="mr-2" /> 已複製文字 </>
+                ) : (
+                  <> <Copy size={20} className="mr-2" /> 複製文字報告 </>
+                )}
+              </button>
+              
+              <button 
+                onClick={handlePrint}
+                className="flex-1 flex items-center justify-center px-4 py-3 rounded-xl font-bold text-white bg-gray-900 hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl"
+              >
+                <FileText size={20} className="mr-2" />
+                下載 / 列印 PDF
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* --- 這是隱藏的列印專用版面 (只有在按下 "列印" 或 "存成PDF" 時才會出現) --- */}
+      <div className="hidden print:block p-8 max-w-3xl mx-auto bg-white">
+        <div className="border-b-2 border-gray-200 pb-6 mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">IG 帳號健檢診斷書</h1>
+            <p className="text-gray-500">專業社群帳號分析報告</p>
+          </div>
+          <div className="text-right">
+            <div className="text-sm text-gray-400 mb-1">診斷日期</div>
+            <div className="font-mono text-gray-600">{new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-start mb-10 bg-gray-50 p-6 rounded-xl">
+          <div>
+            <div className="text-sm text-gray-500 mb-1">受測帳號</div>
+            <div className="text-2xl font-bold text-gray-800">
+              {accountName || '未指定'}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm text-gray-500 mb-1">健康度評分</div>
+            <div className={`text-4xl font-black ${getScoreColor(score)}`}>
+              {score} <span className="text-lg text-gray-400 font-normal">/ 100</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-8 mb-10">
+          <div className="col-span-1">
+             <h3 className="font-bold text-lg text-green-700 mb-3 border-b border-green-200 pb-2 flex items-center">
+               <ThumbsUp size={18} className="mr-2" /> 做得很好的地方
+             </h3>
+             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">
+               {goodPoints || '（無特別備註）'}
+             </div>
+          </div>
+          <div className="col-span-1">
+             <h3 className="font-bold text-lg text-orange-700 mb-3 border-b border-orange-200 pb-2 flex items-center">
+               <TrendingUp size={18} className="mr-2" /> 可以更好的地方
+             </h3>
+             <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm min-h-[100px]">
+               {improvePoints || '（無特別備註）'}
+             </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="font-bold text-lg text-gray-900 mb-4 border-b border-gray-200 pb-2">
+            詳細檢核項目
+          </h3>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+            {checklist.map(item => (
+              <div key={item.id} className="flex items-center text-sm mb-1">
+                {item.checked ? (
+                  <CheckCircle2 size={16} className="text-green-600 mr-2 flex-shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 border border-gray-300 rounded-full mr-2 flex-shrink-0"></div>
+                )}
+                <span className={item.checked ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
+          此報告由 IG 帳號健檢工具生成
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+export default App;
